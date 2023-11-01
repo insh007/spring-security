@@ -8,7 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 public class SpringSecurityPlayResource {
-
+	
+	// To get CSRF token which is needed for Post & Put request
 	@GetMapping("/csrf-token")
 	public CsrfToken retrieveCsrfToken(HttpServletRequest request) {
 		return (CsrfToken) request.getAttribute("_csrf");
