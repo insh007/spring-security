@@ -63,7 +63,7 @@ public class BasicAuthSecurityConfiguration {
 //		//Creating users in memory not recommended for production level 
 //	}
 	
-	
+	@Bean
 	public DataSource dataSource() {
 		return new EmbeddedDatabaseBuilder()
 				.setType(EmbeddedDatabaseType.H2)
@@ -94,7 +94,7 @@ public class BasicAuthSecurityConfiguration {
 		return jdbcUserDetailsManager;
 	}
 	
-	
+	@Bean
 	public BCryptPasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
