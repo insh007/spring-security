@@ -11,6 +11,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
@@ -39,7 +40,9 @@ public class BasicAuthSecurityConfiguration {
 		// Disabling CSRF
 		http.csrf().disable();
 		
-		http.headers().frameOptions().sameOrigin();
+//		http.headers().frameOptions().sameOrigin();
+		http.headers(headers -> headers.frameOptions(
+				frameOptionsConfig-> frameOptionsConfig.disable()));
 		
 		return http.build();	
 		}
@@ -71,21 +74,33 @@ public class BasicAuthSecurityConfiguration {
 	@Bean
 	public UserDetailsService userDetailsService(DataSource dataSource) {
 		var user = User.withUsername("in28minutes")
-				.password("{noop}dummy")
+//				.password("{noop}dummy")
+				.password("dummy")
+				.passwordEncoder(str -> passwordEncoder().encode(str))
 				.roles("USER")
 				.build();
 		
 		var admin = User.withUsername("admin")
-				.password("{noop}dummy")
+//				.password("{noop}dummy")
+				.password("dummy")
+				.passwordEncoder(str -> passwordEncoder().encode(str))
 				.roles("ADMIN")
-				.build();
+				.build();  
 		
 		var jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
 		jdbcUserDetailsManager.createUser(user);
 		jdbcUserDetailsManager.createUser(admin);
-		
+
 		return jdbcUserDetailsManager;
 	}
+	
+	
+	public BCryptPasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+	
+	
+	
 }
 
 /*
