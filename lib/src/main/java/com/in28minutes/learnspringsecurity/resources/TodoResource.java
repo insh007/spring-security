@@ -17,7 +17,8 @@ public class TodoResource {
 	
 	private static final List<Todo> Todos_list = 
 			List.of(new Todo("inshad", "spring-security"),
-					new Todo("Ranga", "AWS"));
+					new Todo("Ranga", "AWS"),
+					new Todo("in28minutes", "AWS"));
 	
 	@GetMapping("/todos")
 	public List<Todo> retrieveAllTodos() {
