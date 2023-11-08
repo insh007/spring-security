@@ -1,4 +1,10 @@
-package com.in28minutes.learnspringsecurity.basic;
+package com.in28minutes.learnspringsecurity.jwt;
+
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPublicKey;
+import java.util.List;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -7,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -16,9 +23,17 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.nimbusds.jose.KeySourceException;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSelector;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
 
-//@Configuration
-public class BasicAuthSecurityConfiguration {
+
+@Configuration
+public class JwtAuthSecurityConfiguration {
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,35 +48,18 @@ public class BasicAuthSecurityConfiguration {
 						session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				);
 		
-		
-		//http.formLogin();
 		http.httpBasic();
 		
 		// Disabling CSRF
 		http.csrf().disable();
 		
-//		http.headers().frameOptions().sameOrigin();
 		http.headers(headers -> headers.frameOptions(
 				frameOptionsConfig-> frameOptionsConfig.disable()));
 		
+		http.oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt);
+		
 		return http.build();	
 		}
-	
-//	@Bean
-//	public UserDetailsService userDetailsService() {
-//		var user = User.withUsername("in28minutes")
-//				.password("{noop}dummy")
-//				.roles("USER")
-//				.build();
-//		
-//		var admin = User.withUsername("admin")
-//				.password("{noop}dummy")
-//				.roles("ADMIN")
-//				.build();
-//		
-//		return new InMemoryUserDetailsManager(user, admin);
-//		//Creating users in memory not recommended for production level 
-//	}
 	
 	@Bean
 	public DataSource dataSource() {
@@ -99,14 +97,43 @@ public class BasicAuthSecurityConfiguration {
 		return new BCryptPasswordEncoder();
 	}
 	
+	// 1: Creating key pair
+	@Bean
+	public KeyPair keyPair() {
+		try {
+			var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+			keyPairGenerator.initialize(2048); // key size
+			return keyPairGenerator.generateKeyPair();
+			
+		}
+		catch(Exception ex) {
+			//convert checked exception to runtime exception(unchecked exception)
+			throw new RuntimeException(ex);
+		}
+	}
 	
+	// 2: Create RSA Key Object using Key Pair
+	@Bean
+	public RSAKey rsaKey(KeyPair keyPair) {
+		
+		return new RSAKey
+				.Builder((RSAPublicKey)keyPair.getPublic())
+				.privateKey(keyPair.getPrivate())
+				.keyID(UUID.randomUUID().toString())
+				.build();
+		
+	}
+	
+	// 3: Create JWKSource(JSON Web Key source)
+			// 3(previous): create JWK set with the RSA key  
+	@Bean
+	public JWKSource<SecurityContext> jwkSource(RSAKey rsaKey) {
+		var jwkSet = new JWKSet(rsaKey);
+		
+		return (jwkSelector, context) -> jwkSelector.select(jwkSet);
+		
+	}
 	
 }
 
-/*
-Note : 
-Need Change SpringBootWebSecurityConfiguration which is used by default by spring security
-to provide default authentication(can see in first commit) so that we do not need 
-CSRF token to perform Post or Put request means we converting the request 
-into "STATELESS"
-*/
+
